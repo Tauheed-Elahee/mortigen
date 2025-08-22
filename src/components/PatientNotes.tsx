@@ -1,4 +1,3 @@
-import React from 'react'
 import { Clock, User } from 'lucide-react'
 import type { MedicalNote } from '../types'
 

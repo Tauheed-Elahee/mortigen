@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { SupabaseService } from './services/supabaseService'
 import { AIService } from './services/aiService'
 import { useSupabaseData, usePatientNotes } from './hooks/useSupabaseData'
