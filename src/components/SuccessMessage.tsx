@@ -25,4 +25,3 @@ export default function SuccessMessage({ message, onDismiss }: SuccessMessagePro
     </div>
   )
 }
-</SuccessMessage>
