@@ -1,16 +1,6 @@
 import React from 'react'
 import { Clock, User } from 'lucide-react'
-
-interface MedicalNote {
-  id: string
-  original_note: string
-  refined_note: string
-  created_at: string
-  physicians: {
-    name: string
-    specialty: string | null
-  } | null
-}
+import type { MedicalNote } from '../types'
 
 interface PatientNotesProps {
   notes: MedicalNote[]

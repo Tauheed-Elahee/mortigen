@@ -1,11 +1,6 @@
 import React from 'react'
 import { User } from 'lucide-react'
-
-interface Patient {
-  id: string
-  name: string
-  date_of_birth: string | null
-}
+import type { Patient } from '../types'
 
 interface PatientSelectorProps {
   patients: Patient[]
