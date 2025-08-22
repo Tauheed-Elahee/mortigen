@@ -1,0 +1,14 @@
+{
+  "name": "netlify-chatgpt-processor",
+  "version": "1.0.0",
+  "description": "A Netlify site that processes text using ChatGPT API",
+  "main": "index.html",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'No build step required for static site'"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+}

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Text Processor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        button {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 160px;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #4f46e5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .output-section {
+            margin-top: 30px;
+        }
+
+        .output {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #374151;
+        }
+
+        .output.has-content {
+            background: #f0f9ff;
+            border-color: #0ea5e9;
+        }
+
+        .error {
+            background: #fef2f2;
+            border-color: #f87171;
+            color: #dc2626;
+        }
+
+        .setup-notice {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            color: #92400e;
+        }
+
+        .setup-notice h3 {
+            margin-bottom: 10px;
+            color: #78350f;
+        }
+
+        .setup-notice code {
+            background: #fbbf24;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI Text Processor</h1>
+            <p>Transform your text with the power of AI</p>
+        </div>
+        
+        <div class="content">
+            <div class="setup-notice">
+                <h3>⚠️ Setup Required</h3>
+                <p>To use this application, you need to add your OpenAI API key as an environment variable named <code>OPENAI_API_KEY</code> in your Netlify site settings.</p>
+            </div>
+
+            <div class="input-section">
+                <label for="textInput">Enter your text:</label>
+                <textarea 
+                    id="textInput" 
+                    placeholder="Type or paste your text here and I'll help improve it, summarize it, or transform it based on your needs..."
+                ></textarea>
+            </div>
+
+            <div class="button-container">
+                <button id="processBtn" onclick="processText()">
+                    Process with AI
+                </button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span>Processing with AI...</span>
+            </div>
+
+            <div class="output-section">
+                <label>AI Response:</label>
+                <div id="output" class="output">
+                    Your AI-processed text will appear here...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function processText() {
+            const textInput = document.getElementById('textInput');
+            const output = document.getElementById('output');
+            const processBtn = document.getElementById('processBtn');
+            const loading = document.getElementById('loading');
+            
+            const inputText = textInput.value.trim();
+            
+            if (!inputText) {
+                output.textContent = 'Please enter some text to process.';
+                output.className = 'output error';
+                return;
+            }
+            
+            // Show loading state
+            processBtn.disabled = true;
+            loading.style.display = 'flex';
+            output.textContent = 'Processing...';
+            output.className = 'output';
+            
+            try {
+                const response = await fetch('/.netlify/functions/process-text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: inputText })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to process text');
+                }
+                
+                output.textContent = data.result;
+                output.className = 'output has-content';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                output.textContent = `Error: ${error.message}`;
+                output.className = 'output error';
+            } finally {
+                // Hide loading state
+                processBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        // Allow Enter key to submit (with Ctrl/Cmd)
+        document.getElementById('textInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                processText();
+            }
+        });
+    </script>
+</body>
+</html>
