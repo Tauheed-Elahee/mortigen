@@ -3,6 +3,7 @@ import type { Physician, Patient, MedicalNote } from '../types'
 
 export class SupabaseService {
   static async getPhysicians(): Promise<Physician[]> {
+    try {
     const { data, error } = await supabase
       .from('physicians')
       .select('*')
@@ -14,9 +15,17 @@ export class SupabaseService {
     }
     
     return data || []
+    } catch (err) {
+      console.error('Network error loading physicians:', err)
+      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+        throw new Error('Unable to connect to Supabase. Please check your internet connection and Supabase URL.')
+      }
+      throw err
+    }
   }
 
   static async getPatients(): Promise<Patient[]> {
+    try {
     const { data, error } = await supabase
       .from('patients')
       .select('*')
@@ -28,9 +37,17 @@ export class SupabaseService {
     }
     
     return data || []
+    } catch (err) {
+      console.error('Network error loading patients:', err)
+      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+        throw new Error('Unable to connect to Supabase. Please check your internet connection and Supabase URL.')
+      }
+      throw err
+    }
   }
 
   static async getPatientNotes(patientId: string): Promise<MedicalNote[]> {
+    try {
     const { data, error } = await supabase
       .from('medical_notes')
       .select(`
@@ -49,6 +66,13 @@ export class SupabaseService {
     }
     
     return data || []
+    } catch (err) {
+      console.error('Network error loading patient notes:', err)
+      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+        throw new Error('Unable to connect to Supabase. Please check your internet connection and Supabase URL.')
+      }
+      throw err
+    }
   }
 
   static async saveNote(
@@ -57,6 +81,7 @@ export class SupabaseService {
     originalNote: string,
     refinedNote: string
   ): Promise<void> {
+    try {
     const { error } = await supabase
       .from('medical_notes')
       .insert({
@@ -69,6 +94,13 @@ export class SupabaseService {
     if (error) {
       console.error('Error saving note:', error)
       throw new Error(`Failed to save note: ${error.message}`)
+    }
+    } catch (err) {
+      console.error('Network error saving note:', err)
+      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+        throw new Error('Unable to connect to Supabase. Please check your internet connection and Supabase URL.')
+      }
+      throw err
     }
   }
 }

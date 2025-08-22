@@ -15,4 +15,7 @@ if (supabaseUrl.includes('placeholder') || supabaseAnonKey.includes('placeholder
   )
 }
 
+// Log connection details for debugging (without exposing sensitive keys)
+console.log('Supabase URL:', supabaseUrl)
+console.log('Supabase Key (first 10 chars):', supabaseAnonKey.substring(0, 10) + '...')
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
