@@ -1,11 +1,11 @@
 // netlify/functions/process-text.js
 // Stateless transform: transcript -> { front_matter, markdown } -> assembled .md
-
 exports.handler = async function (event, context) {
   const headers = {
     'Access-Control-Allow-Origin': '*', // tighten to your domain in prod
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json'
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -27,29 +27,29 @@ exports.handler = async function (event, context) {
       };
     }
 
-    let parsedBody = {};
+    let payload = {};
     try {
-      parsedBody = JSON.parse(event.body || '{}');
-    } catch (e) {
+      payload = JSON.parse(event.body || '{}');
+    } catch {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
     }
 
-    const text = (parsedBody && parsedBody.text) ? String(parsedBody.text) : '';
-    if (!text || !text.trim()) {
+    const text = (payload && payload.text) ? String(payload.text) : '';
+    if (!text.trim()) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Text input is required' }) };
     }
 
     // ---- Rules (SYSTEM) ----
     const SYSTEM_PROMPT = [
       'You are a medical scribe formatter for oncology.',
-      'Return JSON ONLY that matches the MortigenNote schema provided via Structured Outputs.',
+      'Return JSON ONLY that matches the MortigenNote schema via Structured Outputs.',
       'Taxonomy terms must be lowercase, hyphenated slugs (e.g., "dan-lee", "catherine-doe").',
       'Author must be "dan-lee".',
       'Derive the patient\'s first name from the transcript; if no last name is present, use "doe".',
       'Do not invent facts; if unknown, omit.',
       'Markdown section headings must be EXACTLY and in this order:',
       'Reason for Consultation, HPI, Past Medical History, Medications, Allergies, Social History, Family History, Physical Exam, Investigations, Impression/Plan.',
-      'Do NOT include code fences. Do NOT include any extra prose or keys beyond the schema.'
+      'Do NOT include code fences. Do NOT include extra prose or keys beyond the schema.'
     ].join(' ');
 
     const defaults = {
@@ -119,16 +119,19 @@ exports.handler = async function (event, context) {
           { role: 'user', content: user }
         ],
         temperature: 0,
+        // IMPORTANT: put the schema under text.format (object)
         text: {
-          format: 'json_schema',
-          json_schema: jsonSchema
+          format: {
+            type: 'json_schema',
+            json_schema: jsonSchema
+          }
         }
       })
     });
 
     if (!resp.ok) {
       let errObj = {};
-      try { errObj = await resp.json(); } catch (e) {}
+      try { errObj = await resp.json(); } catch {}
       console.error('OpenAI error:', errObj);
       return {
         statusCode: resp.status,
@@ -153,7 +156,7 @@ exports.handler = async function (event, context) {
     let parsed;
     try {
       parsed = JSON.parse(raw);
-    } catch (e) {
+    } catch {
       parsed = JSON.parse(String(raw).trim());
     }
 
