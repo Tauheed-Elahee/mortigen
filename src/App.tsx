@@ -60,6 +60,11 @@ export default function App() {
     console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL)
     console.log('Supabase Key exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY)
     
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      setError('Please configure Supabase environment variables')
+      return
+    }
+
     const { data, error } = await supabase
       .from('physicians')
       .select('*')
@@ -76,6 +81,12 @@ export default function App() {
 
   const loadPatients = async () => {
     console.log('Loading patients...')
+    
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      setError('Please configure Supabase environment variables')
+      return
+    }
+
     const { data, error } = await supabase
       .from('patients')
       .select('*')
