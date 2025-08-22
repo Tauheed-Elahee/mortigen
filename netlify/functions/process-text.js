@@ -1,19 +1,15 @@
 // netlify/functions/process-text.js
-// Stateless transform: transcript -> { front_matter, markdown } -> assembled .md
 exports.handler = async function (event, context) {
   const headers = {
-    'Access-Control-Allow-Origin': '*', // tighten to your domain in prod
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json'
   };
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
-  if (event.httpMethod !== 'POST') {
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
+  if (event.httpMethod !== 'POST')
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
-  }
 
   try {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -21,23 +17,17 @@ exports.handler = async function (event, context) {
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({
-          error: 'OpenAI API key not configured. Add OPENAI_API_KEY in your Netlify environment variables.'
-        })
+        body: JSON.stringify({ error: 'OpenAI API key not configured. Set OPENAI_API_KEY.' })
       };
     }
 
     let payload = {};
-    try {
-      payload = JSON.parse(event.body || '{}');
-    } catch {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
-    }
+    try { payload = JSON.parse(event.body || '{}'); }
+    catch { return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) }; }
 
     const text = (payload && payload.text) ? String(payload.text) : '';
-    if (!text.trim()) {
+    if (!text.trim())
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Text input is required' }) };
-    }
 
     // ---- Rules (SYSTEM) ----
     const SYSTEM_PROMPT = [
@@ -45,11 +35,11 @@ exports.handler = async function (event, context) {
       'Return JSON ONLY that matches the MortigenNote schema via Structured Outputs.',
       'Taxonomy terms must be lowercase, hyphenated slugs (e.g., "dan-lee", "catherine-doe").',
       'Author must be "dan-lee".',
-      'Derive the patient\'s first name from the transcript; if no last name is present, use "doe".',
+      'Derive the patient\'s first name; if no last name is present, use "doe".',
       'Do not invent facts; if unknown, omit.',
       'Markdown section headings must be EXACTLY and in this order:',
       'Reason for Consultation, HPI, Past Medical History, Medications, Allergies, Social History, Family History, Physical Exam, Investigations, Impression/Plan.',
-      'Do NOT include code fences. Do NOT include extra prose or keys beyond the schema.'
+      'No code fences. No extra prose or keys.'
     ].join(' ');
 
     const defaults = {
@@ -60,8 +50,9 @@ exports.handler = async function (event, context) {
       anatomy: ['breast']
     };
 
-    // ---- Structured Outputs schema ----
-    const jsonSchema = {
+    // Schema lives directly under text.format
+    const formatSchema = {
+      type: 'json_schema',
       name: 'MortigenNote',
       strict: true,
       schema: {
@@ -73,15 +64,7 @@ exports.handler = async function (event, context) {
             type: 'object',
             additionalProperties: false,
             required: [
-              'title',
-              'date',
-              'conditions',
-              'note_type',
-              'module',
-              'authors',
-              'patients',
-              'anatomy',
-              'params'
+              'title','date','conditions','note_type','module','authors','patients','anatomy','params'
             ],
             properties: {
               title: { type: 'string' },
@@ -100,18 +83,13 @@ exports.handler = async function (event, context) {
       }
     };
 
-    // Single user message (stateless)
     const user =
       'TRANSCRIPT: """\n' + text + '\n"""' +
       '\n\nDEFAULTS: ' + JSON.stringify(defaults, null, 2);
 
-    // ---- Call OpenAI Responses API ----
     const resp = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + apiKey,
-        'Content-Type': 'application/json'
-      },
+      headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         input: [
@@ -119,94 +97,50 @@ exports.handler = async function (event, context) {
           { role: 'user', content: user }
         ],
         temperature: 0,
-        // IMPORTANT: put the schema under text.format (object)
-        text: {
-          format: {
-            type: 'json_schema',
-            json_schema: jsonSchema
-          }
-        }
+        text: { format: formatSchema }   // <-- key fix: include name/schema/strict here
       })
     });
 
     if (!resp.ok) {
-      let errObj = {};
-      try { errObj = await resp.json(); } catch {}
+      let errObj = {}; try { errObj = await resp.json(); } catch {}
       console.error('OpenAI error:', errObj);
       return {
         statusCode: resp.status,
         headers,
-        body: JSON.stringify({ error: (errObj && errObj.error && errObj.error.message) || 'OpenAI API error' })
+        body: JSON.stringify({ error: (errObj.error && errObj.error.message) || 'OpenAI API error' })
       };
     }
 
     const data = await resp.json();
-
-    // Prefer convenience field; fallback to nested content
     const raw =
       (data && data.output_text) ||
       (data && data.output && data.output[0] && data.output[0].content &&
        data.output[0].content[0] && data.output[0].content[0].text) ||
       '';
 
-    if (!raw) {
+    if (!raw)
       return { statusCode: 500, headers, body: JSON.stringify({ error: 'Empty model output' }) };
-    }
 
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      parsed = JSON.parse(String(raw).trim());
-    }
+    let parsed; try { parsed = JSON.parse(raw); } catch { parsed = JSON.parse(String(raw).trim()); }
 
-    // ---- Harden taxonomy slugs post-parse ----
-    function slug(s) {
-      return String(s || '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
-    }
-
-    // Force author to dan-lee
+    const slug = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     parsed.front_matter.authors = ['dan-lee'];
-
-    // Ensure patient has a last name; if single-part slug, append "-doe"
-    if (parsed.front_matter && Array.isArray(parsed.front_matter.patients) && parsed.front_matter.patients.length > 0) {
-      parsed.front_matter.patients = parsed.front_matter.patients.map(function (p) {
-        var s = slug(p);
-        if (s.indexOf('-') === -1) s = s + '-doe';
-        return s;
+    if (Array.isArray(parsed.front_matter.patients) && parsed.front_matter.patients.length > 0) {
+      parsed.front_matter.patients = parsed.front_matter.patients.map(p => {
+        let s = slug(p); if (s.indexOf('-') === -1) s = s + '-doe'; return s;
       });
     } else {
       parsed.front_matter.patients = ['patient-doe'];
     }
-
-    // Normalize other taxonomy arrays
-    ['conditions', 'note_type', 'module', 'anatomy'].forEach(function (k) {
-      if (parsed.front_matter && Array.isArray(parsed.front_matter[k])) {
-        parsed.front_matter[k] = parsed.front_matter[k].map(slug).filter(Boolean);
-      }
+    ['conditions','note_type','module','anatomy'].forEach(k => {
+      if (Array.isArray(parsed.front_matter[k])) parsed.front_matter[k] = parsed.front_matter[k].map(slug).filter(Boolean);
     });
 
-    // Assemble a .md file
-    const mdFile =
-      JSON.stringify(parsed.front_matter, null, 2) + '\n\n' + parsed.markdown + '\n';
+    const mdFile = JSON.stringify(parsed.front_matter, null, 2) + '\n\n' + parsed.markdown + '\n';
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        result: String(mdFile).trim(),
-        data: parsed
-      })
-    };
+    return { statusCode: 200, headers, body: JSON.stringify({ result: mdFile.trim(), data: parsed }) };
   } catch (error) {
     console.error('Function Error:', error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: 'Server error: ' + (error && error.message ? error.message : 'unknown') })
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Server error: ' + (error.message || 'unknown') }) };
   }
 };
