@@ -52,12 +52,12 @@ exports.handler = async function (event) {
       strict: true,
       schema: {
         type: 'object',
-        additionalProperties: false,                 // <-- root must be closed
+        additionalProperties: false,
         required: ['front_matter', 'markdown'],
         properties: {
           front_matter: {
             type: 'object',
-            additionalProperties: false,             // <-- closed
+            additionalProperties: false,
             required: [
               'title','date','conditions','note_type','module','authors','patients','anatomy','params'
             ],
@@ -72,53 +72,60 @@ exports.handler = async function (event) {
               anatomy: { type: 'array', items: { type: 'string' } },
               params: {
                 type: 'object',
-                additionalProperties: false,         // <-- closed
+                additionalProperties: false,
+                required: [
+                  // nothing has to be listed here unless you want *params* itself to require keys
+                  // we’ll require keys inside the nested objects instead
+                ],
                 properties: {
                   tnm: {
                     type: 'object',
-                    additionalProperties: false,     // <-- closed
+                    additionalProperties: false,
+                    required: ['prefix','T','N','M'],
                     properties: {
-                      prefix: { type: 'string' },
-                      T: { type: 'string' },
-                      N: { type: 'string' },
-                      M: { type: 'string' }
+                      prefix: { type: 'string', nullable: true },
+                      T:      { type: 'string', nullable: true },
+                      N:      { type: 'string', nullable: true },
+                      M:      { type: 'string', nullable: true }
                     }
                   },
                   nodes: {
                     type: 'object',
-                    additionalProperties: false,     // <-- closed
+                    additionalProperties: false,
+                    required: ['examined','positive','sentinel'],
                     properties: {
-                      examined: { type: 'number' },
-                      positive: { type: 'number' },
-                      sentinel: { type: 'boolean' }
+                      examined: { type: 'number',  nullable: true },
+                      positive: { type: 'number',  nullable: true },
+                      sentinel: { type: 'boolean', nullable: true }
                     }
                   },
-                  tumor_size_mm: { type: 'number' },
-                  histology: { type: 'string' },
-                  grade: { type: 'number' },
-                  er_status: { type: 'string' },
-                  er_allred: { type: 'number' },
-                  pr_status: { type: 'string' },
-                  pr_allred: { type: 'number' },
-                  her2_status: { type: 'string' },
-                  her2_ihc: { type: 'string' },
-                  her2_fish: { type: 'string' },
-                  dcis_present: { type: 'boolean' },
-                  dcis_margin_mm: { type: 'number' },
-                  surgery_date: { type: 'string' },
-                  surgery_type: { type: 'string' },
+                  tumor_size_mm: { type: 'number', nullable: true },
+                  histology:     { type: 'string', nullable: true },
+                  grade:         { type: 'number', nullable: true },
+                  er_status:     { type: 'string', nullable: true },
+                  er_allred:     { type: 'number', nullable: true },
+                  pr_status:     { type: 'string', nullable: true },
+                  pr_allred:     { type: 'number', nullable: true },
+                  her2_status:   { type: 'string', nullable: true },
+                  her2_ihc:      { type: 'string', nullable: true },
+                  her2_fish:     { type: 'string', nullable: true },
+                  dcis_present:  { type: 'boolean', nullable: true },
+                  dcis_margin_mm:{ type: 'number', nullable: true },
+                  surgery_date:  { type: 'string', nullable: true },
+                  surgery_type:  { type: 'string', nullable: true },
                   oncotype_dx: {
                     type: 'object',
-                    additionalProperties: false,     // <-- closed
+                    additionalProperties: false,
+                    required: ['score','risk_9y_pct'],
                     properties: {
-                      score: { type: 'number' },
-                      risk_9y_pct: { type: 'number' }
+                      score:       { type: 'number', nullable: true },
+                      risk_9y_pct: { type: 'number', nullable: true }
                     }
                   },
-                  ecog: { type: 'number' },
-                  menopausal_status: { type: 'string' },
-                  featured: { type: 'boolean' },
-                  lastmod: { type: 'string' }
+                  ecog:             { type: 'number', nullable: true },
+                  menopausal_status:{ type: 'string', nullable: true },
+                  featured:         { type: 'boolean', nullable: true },
+                  lastmod:          { type: 'string', nullable: true }
                 }
               }
             }
