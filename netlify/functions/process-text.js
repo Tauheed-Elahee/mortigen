@@ -32,7 +32,7 @@ exports.handler = async function (event) {
       'Taxonomy terms must be lowercase, hyphenated slugs (e.g., "dan-lee", "catherine-doe").',
       'Author must be "dan-lee".',
       'Derive the patient\'s first name; if no last name is present, use "doe".',
-      'Do not invent facts; if unknown, set the field to null (not omitted).',
+      'Do not invent facts; if unknown, set the field to null (not omitted). Always include every key in front_matter.params (tnm, nodes, tumor_size_mm, histology, grade, er_status, er_allred, pr_status, pr_allred, her2_status, her2_ihc, her2_fish, dcis_present, dcis_margin_mm, surgery_date, surgery_type, oncotype_dx, ecog, menopausal_status, featured, lastmod) even if null.',
       'Markdown headings (exact order): Reason for Consultation, HPI, Past Medical History, Medications, Allergies, Social History, Family History, Physical Exam, Investigations, Impression/Plan.',
       'No code fences. No extra prose or keys.'
     ].join(' ');
