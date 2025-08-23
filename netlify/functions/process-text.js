@@ -25,7 +25,7 @@ exports.handler = async function (event, context) {
     try { payload = JSON.parse(event.body || '{}'); }
     catch { return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) }; }
 
-    const text = (payload && payload.text) ? String(payload.text) : '';
+    const text = payload && payload.text ? String(payload.text) : '';
     if (!text.trim())
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Text input is required' }) };
 
@@ -50,7 +50,7 @@ exports.handler = async function (event, context) {
       anatomy: ['breast']
     };
 
-    // Schema lives directly under text.format
+    // ---- STRICT Structured Outputs schema (all objects closed) ----
     const formatSchema = {
       type: 'json_schema',
       name: 'MortigenNote',
@@ -75,7 +75,57 @@ exports.handler = async function (event, context) {
               authors: { type: 'array', items: { type: 'string' } },
               patients: { type: 'array', items: { type: 'string' } },
               anatomy: { type: 'array', items: { type: 'string' } },
-              params: { type: 'object', additionalProperties: true }
+              params: {
+                type: 'object',
+                additionalProperties: false, // <-- key fix
+                properties: {
+                  tnm: {
+                    type: 'object',
+                    additionalProperties: false,
+                    properties: {
+                      prefix: { type: 'string' },
+                      T: { type: 'string' },
+                      N: { type: 'string' },
+                      M: { type: 'string' }
+                    }
+                  },
+                  nodes: {
+                    type: 'object',
+                    additionalProperties: false,
+                    properties: {
+                      examined: { type: 'number' },
+                      positive: { type: 'number' },
+                      sentinel: { type: 'boolean' }
+                    }
+                  },
+                  tumor_size_mm: { type: 'number' },
+                  histology: { type: 'string' },
+                  grade: { type: 'number' },
+                  er_status: { type: 'string' },
+                  er_allred: { type: 'number' },
+                  pr_status: { type: 'string' },
+                  pr_allred: { type: 'number' },
+                  her2_status: { type: 'string' },
+                  her2_ihc: { type: 'string' },
+                  her2_fish: { type: 'string' },
+                  dcis_present: { type: 'boolean' },
+                  dcis_margin_mm: { type: 'number' },
+                  surgery_date: { type: 'string' },
+                  surgery_type: { type: 'string' },
+                  oncotype_dx: {
+                    type: 'object',
+                    additionalProperties: false,
+                    properties: {
+                      score: { type: 'number' },
+                      risk_9y_pct: { type: 'number' }
+                    }
+                  },
+                  ecog: { type: 'number' },
+                  menopausal_status: { type: 'string' },
+                  featured: { type: 'boolean' },
+                  lastmod: { type: 'string' }
+                }
+              }
             }
           },
           markdown: { type: 'string' }
@@ -97,7 +147,7 @@ exports.handler = async function (event, context) {
           { role: 'user', content: user }
         ],
         temperature: 0,
-        text: { format: formatSchema }   // <-- key fix: include name/schema/strict here
+        text: { format: formatSchema } // schema lives directly under text.format
       })
     });
 
@@ -123,24 +173,8 @@ exports.handler = async function (event, context) {
 
     let parsed; try { parsed = JSON.parse(raw); } catch { parsed = JSON.parse(String(raw).trim()); }
 
+    // ---- Harden taxonomy slugs post-parse ----
     const slug = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     parsed.front_matter.authors = ['dan-lee'];
     if (Array.isArray(parsed.front_matter.patients) && parsed.front_matter.patients.length > 0) {
-      parsed.front_matter.patients = parsed.front_matter.patients.map(p => {
-        let s = slug(p); if (s.indexOf('-') === -1) s = s + '-doe'; return s;
-      });
-    } else {
-      parsed.front_matter.patients = ['patient-doe'];
-    }
-    ['conditions','note_type','module','anatomy'].forEach(k => {
-      if (Array.isArray(parsed.front_matter[k])) parsed.front_matter[k] = parsed.front_matter[k].map(slug).filter(Boolean);
-    });
-
-    const mdFile = JSON.stringify(parsed.front_matter, null, 2) + '\n\n' + parsed.markdown + '\n';
-
-    return { statusCode: 200, headers, body: JSON.stringify({ result: mdFile.trim(), data: parsed }) };
-  } catch (error) {
-    console.error('Function Error:', error);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Server error: ' + (error.message || 'unknown') }) };
-  }
-};
+      parsed.front_matter.patients = parsed.front_matter.patie
