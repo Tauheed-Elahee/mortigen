@@ -32,7 +32,7 @@ exports.handler = async function (event) {
       'Taxonomy terms must be lowercase, hyphenated slugs (e.g., "dan-lee", "catherine-doe").',
       'Author must be "dan-lee".',
       'Derive the patient\'s first name; if no last name is present, use "doe".',
-      'Do not invent facts; if unknown, omit.',
+      'Do not invent facts; if unknown, set the field to null (not omitted).',
       'Markdown headings (exact order): Reason for Consultation, HPI, Past Medical History, Medications, Allergies, Social History, Family History, Physical Exam, Investigations, Impression/Plan.',
       'No code fences. No extra prose or keys.'
     ].join(' ');
