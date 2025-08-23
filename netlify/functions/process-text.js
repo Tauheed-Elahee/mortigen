@@ -74,8 +74,13 @@ exports.handler = async function (event) {
                 type: 'object',
                 additionalProperties: false,
                 required: [
-                  // nothing has to be listed here unless you want *params* itself to require keys
-                  // we’ll require keys inside the nested objects instead
+                  'tnm','nodes','tumor_size_mm','histology','grade',
+                  'er_status','er_allred','pr_status','pr_allred',
+                  'her2_status','her2_ihc','her2_fish',
+                  'dcis_present','dcis_margin_mm',
+                  'surgery_date','surgery_type',
+                  'oncotype_dx','ecog','menopausal_status',
+                  'featured','lastmod'
                 ],
                 properties: {
                   tnm: {
